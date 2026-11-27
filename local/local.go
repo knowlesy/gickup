@@ -254,7 +254,8 @@ func Locally(repo types.Repo, l types.Local, dry bool) bool {
 			}
 		}
 
-		if l.Zip {
+		// a dry run clones nothing, so there is nothing to zip or prune
+		if l.Zip && !dry {
 			tozip := []string{filepath.Join(l.Path, repo.Name)}
 
 			if len(repo.Issues) > 0 {
@@ -277,7 +278,7 @@ func Locally(repo types.Repo, l types.Local, dry bool) bool {
 			}
 		}
 
-		if l.Versioned() {
+		if l.Versioned() && !dry {
 			if err := pruneOldBackups(filepath.Dir(filepath.Join(l.Path, repo.Name)), repo.Name, l); err != nil {
 				sub.Warn().
 					Str("repo", repo.Name).Msg(err.Error())

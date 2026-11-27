@@ -541,22 +541,27 @@
                             },
                             "keep": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "description": "keeps x latest backups"
                             },
                             "keep_daily": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "description": "keeps the newest backup of each of the last x days; any keep_* option overrides `keep`"
                             },
                             "keep_weekly": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "description": "keeps the newest backup of each of the last x ISO weeks; any keep_* option overrides `keep`"
                             },
                             "keep_monthly": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "description": "keeps the newest backup of each of the last x months; any keep_* option overrides `keep`"
                             },
                             "keep_yearly": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "description": "keeps the newest backup of each of the last x years; any keep_* option overrides `keep`"
                             },
                             "bare": {

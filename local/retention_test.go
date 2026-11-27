@@ -139,6 +139,45 @@ func TestTieredUsesLocation(t *testing.T) {
 	}
 }
 
+func TestTieredDailyAcrossDaylightSaving(t *testing.T) {
+	t.Parallel()
+
+	london, err := time.LoadLocation("Europe/London")
+	if err != nil {
+		t.Skipf("no time zone data: %v", err)
+	}
+
+	cases := []struct {
+		name   string
+		stamps []int64
+		want   []string
+	}{
+		{
+			// clocks go back on 2026-10-25, so that day lasts 25 hours: 00:30 BST and 23:30 GMT are the same day
+			name:   "autumn",
+			stamps: []int64{utc(2026, 10, 24, 11), utc(2026, 10, 24, 23) + 30*60, utc(2026, 10, 25, 23) + 30*60},
+			want:   []string{"2026-10-24 11h", "2026-10-25 23h"},
+		},
+		{
+			// clocks go forward on 2026-03-29, so that day lasts 23 hours: 00:30 GMT and 23:30 BST are the same day
+			name:   "spring",
+			stamps: []int64{utc(2026, 3, 28, 12), utc(2026, 3, 29, 0) + 30*60, utc(2026, 3, 29, 22) + 30*60},
+			want:   []string{"2026-03-28 12h", "2026-03-29 22h"},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			keep := selectTieredBackups(newestFirst(c.stamps), london, types.Local{KeepDaily: 2})
+			if got := keptDates(keep); !reflect.DeepEqual(got, c.want) {
+				t.Fatalf("kept %v, want %v", got, c.want)
+			}
+		})
+	}
+}
+
 func TestPruneTieredRemovesGenerations(t *testing.T) {
 	t.Parallel()
 
