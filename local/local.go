@@ -82,7 +82,7 @@ func Locally(repo types.Repo, l types.Local, dry bool) bool {
 		repo.Name += ".git"
 	}
 
-	if l.Keep > 0 {
+	if l.Versioned() {
 		repo.Name = path.Join(repo.Name, fmt.Sprint(date.Unix()))
 	}
 
@@ -277,7 +277,7 @@ func Locally(repo types.Repo, l types.Local, dry bool) bool {
 			}
 		}
 
-		if l.Keep > 0 {
+		if l.Versioned() {
 			if err := pruneOldBackups(filepath.Dir(filepath.Join(l.Path, repo.Name)), repo.Name, l); err != nil {
 				sub.Warn().
 					Str("repo", repo.Name).Msg(err.Error())
@@ -292,7 +292,7 @@ func Locally(repo types.Repo, l types.Local, dry bool) bool {
 	return true
 }
 
-// pruneOldBackups enforces l.Keep by removing the oldest timestamped backups
+// pruneOldBackups enforces l.Keep, or the keep_* tiers when set, by removing timestamped backups
 func pruneOldBackups(parentdir string, repoName string, l types.Local) error {
 	files, err := os.ReadDir(parentdir)
 	if err != nil {
@@ -316,17 +316,28 @@ func pruneOldBackups(parentdir string, repoName string, l types.Local) error {
 		generations[ts] = append(generations[ts], file.Name())
 	}
 
-	if len(generations) <= l.Keep {
-		return nil
-	}
-
 	stamps := make([]int64, 0, len(generations))
 	for ts := range generations {
 		stamps = append(stamps, ts)
 	}
 	sort.Slice(stamps, func(i, j int) bool { return stamps[i] > stamps[j] })
 
-	for _, ts := range stamps[l.Keep:] {
+	var remove []int64
+	if l.Tiered() {
+		keep := selectTieredBackups(stamps, time.Local, l)
+		for _, ts := range stamps {
+			if !keep[ts] {
+				remove = append(remove, ts)
+			}
+		}
+	} else {
+		if len(stamps) <= l.Keep {
+			return nil
+		}
+		remove = stamps[l.Keep:]
+	}
+
+	for _, ts := range remove {
 		for _, file := range generations[ts] {
 			sub.Info().
 				Msgf("removing %s", types.Red(filepath.Join(parentdir, file)))
@@ -339,6 +350,50 @@ func pruneOldBackups(parentdir string, repoName string, l types.Local) error {
 	}
 
 	return nil
+}
+
+// selectTieredBackups returns the timestamps to keep under the grandfather-father-son tiers of l.
+// stamps must be sorted newest first. Each tier keeps the newest backup of each of its most recent
+// periods, a backup can count for several tiers, and the newest backup overall is always kept.
+func selectTieredBackups(stamps []int64, loc *time.Location, l types.Local) map[int64]bool {
+	keep := map[int64]bool{}
+	if len(stamps) == 0 {
+		return keep
+	}
+	keep[stamps[0]] = true
+
+	tiers := []struct {
+		count int
+		key   func(time.Time) string
+	}{
+		{l.KeepDaily, func(t time.Time) string { return t.Format("2006-01-02") }},
+		{l.KeepWeekly, func(t time.Time) string {
+			year, week := t.ISOWeek()
+			return fmt.Sprintf("%04d-W%02d", year, week)
+		}},
+		{l.KeepMonthly, func(t time.Time) string { return t.Format("2006-01") }},
+		{l.KeepYearly, func(t time.Time) string { return t.Format("2006") }},
+	}
+
+	for _, tier := range tiers {
+		if tier.count <= 0 {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, ts := range stamps {
+			k := tier.key(time.Unix(ts, 0).In(loc))
+			if seen[k] {
+				continue
+			}
+			if len(seen) == tier.count {
+				break
+			}
+			seen[k] = true
+			keep[ts] = true
+		}
+	}
+
+	return keep
 }
 
 func sanitizeRemote(r *git.Repository, cleanURL string) error {

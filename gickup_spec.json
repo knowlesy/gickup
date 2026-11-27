@@ -543,6 +543,22 @@
                                 "type": "integer",
                                 "description": "keeps x latest backups"
                             },
+                            "keep_daily": {
+                                "type": "integer",
+                                "description": "keeps the newest backup of each of the last x days; any keep_* option overrides `keep`"
+                            },
+                            "keep_weekly": {
+                                "type": "integer",
+                                "description": "keeps the newest backup of each of the last x ISO weeks; any keep_* option overrides `keep`"
+                            },
+                            "keep_monthly": {
+                                "type": "integer",
+                                "description": "keeps the newest backup of each of the last x months; any keep_* option overrides `keep`"
+                            },
+                            "keep_yearly": {
+                                "type": "integer",
+                                "description": "keeps the newest backup of each of the last x years; any keep_* option overrides `keep`"
+                            },
                             "bare": {
                                 "type": "boolean",
                                 "description": "clone the repository as a bare repository"

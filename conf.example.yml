@@ -306,6 +306,11 @@ destination:
       structured: true # checks repos out like hostersite/user|organization/repo
       zip: true # zips the repository after cloned and removes the repository afterwards
       keep: 5 # only keeps x backups
+      # tiered retention, overrides keep if any of these is set. The newest backup is always kept.
+      # keep_daily: 7 # newest backup of each of the last x days
+      # keep_weekly: 4 # newest backup of each of the last x ISO weeks
+      # keep_monthly: 6 # newest backup of each of the last x months
+      # keep_yearly: 1 # newest backup of each of the last x years
       bare: true # clone the repositories as bare
       mirror: true # create mirror clones
       lfs: true # clone lfs repos, !! ATTENTION !! git and git-lfs must be installed on the system!
