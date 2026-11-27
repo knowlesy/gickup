@@ -19,6 +19,12 @@ import (
 func runPrune(t *testing.T, backups []string, keep int) []string {
 	t.Helper()
 
+	return runPruneWith(t, backups, types.Local{Keep: keep})
+}
+
+func runPruneWith(t *testing.T, backups []string, l types.Local) []string {
+	t.Helper()
+
 	parentdir := t.TempDir()
 	for _, d := range backups {
 		if err := os.Mkdir(filepath.Join(parentdir, d), 0o777); err != nil {
@@ -26,7 +32,7 @@ func runPrune(t *testing.T, backups []string, keep int) []string {
 		}
 	}
 
-	if err := pruneOldBackups(parentdir, "test/repo", types.Local{Keep: keep}); err != nil {
+	if err := pruneOldBackups(parentdir, "test/repo", l); err != nil {
 		t.Fatal(err)
 	}
 

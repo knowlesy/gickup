@@ -64,13 +64,27 @@ type Radicle struct {
 
 // Local TODO.
 type Local struct {
-	Bare       bool   `yaml:"bare"`
-	Mirror     bool   `yaml:"mirror" default:"false"`
-	Path       string `yaml:"path"`
-	Structured bool   `yaml:"structured"`
-	Zip        bool   `yaml:"zip"`
-	Keep       int    `yaml:"keep"`
-	LFS        bool   `yaml:"lfs"`
+	Bare        bool   `yaml:"bare"`
+	Mirror      bool   `yaml:"mirror" default:"false"`
+	Path        string `yaml:"path"`
+	Structured  bool   `yaml:"structured"`
+	Zip         bool   `yaml:"zip"`
+	Keep        int    `yaml:"keep"`
+	KeepDaily   int    `yaml:"keep_daily"`   // newest backup per day for the last x days
+	KeepWeekly  int    `yaml:"keep_weekly"`  // newest backup per ISO week for the last x weeks
+	KeepMonthly int    `yaml:"keep_monthly"` // newest backup per month for the last x months
+	KeepYearly  int    `yaml:"keep_yearly"`  // newest backup per year for the last x years
+	LFS         bool   `yaml:"lfs"`
+}
+
+// Tiered reports whether any keep_* retention tier is set. Tiers take precedence over Keep.
+func (l Local) Tiered() bool {
+	return l.KeepDaily > 0 || l.KeepWeekly > 0 || l.KeepMonthly > 0 || l.KeepYearly > 0
+}
+
+// Versioned reports whether backups are stored in timestamped directories and pruned.
+func (l Local) Versioned() bool {
+	return l.Keep > 0 || l.Tiered()
 }
 
 // Conf TODO.

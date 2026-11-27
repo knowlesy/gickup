@@ -141,6 +141,42 @@ log:
 	}
 }
 
+func TestReadConfigFile_LocalRetentionTiers(t *testing.T) {
+	t.Parallel()
+
+	config := `destination:
+  local:
+    - path: /backups
+      keep: 5
+      keep_daily: 30
+      keep_weekly: 8
+      keep_monthly: 6
+      keep_yearly: 1
+`
+	f, err := os.CreateTemp(t.TempDir(), "gickup-test-*.yml")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	configPath := f.Name()
+	if _, err := f.WriteString(config); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	f.Close()
+
+	confs := readConfigFile(configPath)
+	if len(confs) != 1 || len(confs[0].Destination.Local) != 1 {
+		t.Fatalf("expected 1 config with 1 local destination, got %+v", confs)
+	}
+
+	l := confs[0].Destination.Local[0]
+	if l.Keep != 5 || l.KeepDaily != 30 || l.KeepWeekly != 8 || l.KeepMonthly != 6 || l.KeepYearly != 1 {
+		t.Fatalf("keep values = %+v, want keep 5, daily 30, weekly 8, monthly 6, yearly 1", l)
+	}
+	if !l.Tiered() || !l.Versioned() {
+		t.Fatal("expected tiered, versioned retention")
+	}
+}
+
 func TestReadConfigFile_S3UseStaticCredsTrue(t *testing.T) {
 	t.Parallel()
 
